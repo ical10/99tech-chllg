@@ -23,12 +23,20 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { CheckIcon, ChevronsUpDownIcon, LoaderIcon, CheckCircleIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { TOKENS } from "@/lib/constants"
 import { convertTokenAmount, usePrices } from "@/lib/price-service"
 
@@ -47,6 +55,8 @@ const formSchema = z.object({
 export function SwapForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [toAmount, setToAmount] = useState("")
+  const [fromTokenOpen, setFromTokenOpen] = useState(false)
+  const [toTokenOpen, setToTokenOpen] = useState(false)
 
   const { data: prices } = usePrices()
 
@@ -76,14 +86,16 @@ export function SwapForm() {
   async function onSubmit(data: z.infer<typeof formSchema>) {
     setIsLoading(true)
 
-    toast.info(`Processing swap: ${data.fromAmount} ${data.fromToken} → ${toAmount} ${data.toToken}`, {
+    toast(`Processing swap: ${data.fromAmount} ${data.fromToken} → ${toAmount} ${data.toToken}`, {
       duration: 2000,
+      icon: <LoaderIcon className="animate-spin" />,
     })
 
     await new Promise(resolve => setTimeout(resolve, 2000))
 
     toast.success(`Swap confirmed: ${data.fromAmount} ${data.fromToken} → ${toAmount} ${data.toToken}`, {
       duration: 4000,
+      icon: <CheckCircleIcon className="text-green-500" />,
     })
 
     await new Promise(resolve => setTimeout(resolve, 4000))
@@ -107,28 +119,74 @@ export function SwapForm() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="from-token">From Token</FieldLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="from-token" aria-invalid={fieldState.invalid}>
-                      <SelectValue placeholder="Select token" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TOKENS.map((token) => (
-                        <SelectItem key={token} value={token} className="bg-gray-50 hover:bg-gray-100">
+                  <Popover open={fromTokenOpen} onOpenChange={setFromTokenOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between",
+                          !field.value && "text-muted-foreground"
+                        )}
+                        aria-expanded={fromTokenOpen}
+                      >
+                        {field.value ? (
                           <div className="flex items-center gap-2">
                             <img
-                              src={`https://raw.githubusercontent.com/Switcheo/token-icons/main/tokens/${token}.svg`}
-                              alt={token}
+                              src={`https://raw.githubusercontent.com/Switcheo/token-icons/main/tokens/${field.value}.svg`}
+                              alt={field.value}
                               className="size-5"
                               onError={(e) => {
                                 e.currentTarget.style.display = "none"
                               }}
                             />
-                            <span>{token}</span>
+                            <span>{field.value}</span>
                           </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        ) : (
+                          "Select token"
+                        )}
+                        <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search token..." />
+                        <CommandList>
+                          <CommandEmpty>No token found.</CommandEmpty>
+                          <CommandGroup>
+                            {TOKENS.map((token) => (
+                              <CommandItem
+                                key={token}
+                                value={token}
+                                onSelect={() => {
+                                  field.onChange(token)
+                                  setFromTokenOpen(false)
+                                }}
+                              >
+                                <CheckIcon
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === token ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex items-center gap-2">
+                                  <img
+                                    src={`https://raw.githubusercontent.com/Switcheo/token-icons/main/tokens/${token}.svg`}
+                                    alt={token}
+                                    className="size-5"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = "none"
+                                    }}
+                                  />
+                                  <span>{token}</span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
@@ -164,28 +222,74 @@ export function SwapForm() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="to-token">To Token</FieldLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="to-token" aria-invalid={fieldState.invalid}>
-                      <SelectValue placeholder="Select token" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TOKENS.map((token) => (
-                        <SelectItem key={token} value={token} className="bg-gray-50 hover:bg-gray-100">
+                  <Popover open={toTokenOpen} onOpenChange={setToTokenOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between",
+                          !field.value && "text-muted-foreground"
+                        )}
+                        aria-expanded={toTokenOpen}
+                      >
+                        {field.value ? (
                           <div className="flex items-center gap-2">
                             <img
-                              src={`https://raw.githubusercontent.com/Switcheo/token-icons/main/tokens/${token}.svg`}
-                              alt={token}
+                              src={`https://raw.githubusercontent.com/Switcheo/token-icons/main/tokens/${field.value}.svg`}
+                              alt={field.value}
                               className="size-5"
                               onError={(e) => {
                                 e.currentTarget.style.display = "none"
                               }}
                             />
-                            <span>{token}</span>
+                            <span>{field.value}</span>
                           </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        ) : (
+                          "Select token"
+                        )}
+                        <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search token..." />
+                        <CommandList>
+                          <CommandEmpty>No token found.</CommandEmpty>
+                          <CommandGroup>
+                            {TOKENS.map((token) => (
+                              <CommandItem
+                                key={token}
+                                value={token}
+                                onSelect={() => {
+                                  field.onChange(token)
+                                  setToTokenOpen(false)
+                                }}
+                              >
+                                <CheckIcon
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === token ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex items-center gap-2">
+                                  <img
+                                    src={`https://raw.githubusercontent.com/Switcheo/token-icons/main/tokens/${token}.svg`}
+                                    alt={token}
+                                    className="size-5"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = "none"
+                                    }}
+                                  />
+                                  <span>{token}</span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
@@ -211,7 +315,15 @@ export function SwapForm() {
           <Button type="button" variant="outline" onClick={() => form.reset()} disabled={isLoading}>
             Reset
           </Button>
-          <Button type="submit" form="swap-form" disabled={!isValid || isLoading}>
+          <Button 
+            type="submit" 
+            form="swap-form" 
+            disabled={!isValid || isLoading}
+            className={cn(
+              isValid && !isLoading && "swap-button-pulse",
+              isLoading && "swap-button-pulse-fast"
+            )}
+          >
             {isLoading ? "Processing..." : "Swap"}
           </Button>
         </Field>
