@@ -1,9 +1,8 @@
 "use client"
 
-import * as React from "react"
+import { useEffect, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
-import { toast } from "sonner"
 import * as z from "zod"
 
 import { Button } from "@/components/ui/button"
@@ -22,66 +21,106 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { TOKENS } from "@/lib/constants"
 
 const formSchema = z.object({
-  title: z
+  fromToken: z.string().min(1, "Please select a token"),
+  fromAmount: z
     .string()
-    .min(5, "Bug title must be at least 5 characters.")
-    .max(32, "Bug title must be at most 32 characters."),
-  description: z
-    .string()
-    .min(20, "Description must be at least 20 characters.")
-    .max(100, "Description must be at most 100 characters."),
+    .min(1, "Please enter an amount")
+    .refine(
+      (val) => !isNaN(Number(val)) && Number(val) > 0,
+      "Must be a positive number"
+    ),
+  toToken: z.string().min(1, "Please select a token"),
 })
 
 export function SwapForm() {
+  const [toAmount, setToAmount] = useState("")
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
-      description: "",
+      fromToken: "",
+      fromAmount: "",
+      toToken: "",
     },
   })
 
+  const fromAmount = form.watch("fromAmount")
+
+  useEffect(() => {
+    setToAmount(fromAmount || "")
+  }, [fromAmount])
+
   function onSubmit(data: z.infer<typeof formSchema>) {
-    toast("You submitted the following values:", {
-      description: (
-        <pre className="bg-code text-code-foreground mt-2 w-[320px] overflow-x-auto rounded-md p-4">
-          <code>{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-      position: "bottom-right",
-      classNames: {
-        content: "flex flex-col gap-2",
-      },
-      style: {
-        "--border-radius": "calc(var(--radius)  + 4px)",
-      } as React.CSSProperties,
-    })
+    console.log("Swap submitted:", { ...data, toAmount })
   }
 
   return (
-    <Card className="w-full sm:max-w-md">
+    <Card className="w-full sm:min-w-md min-w-xl">
       <CardHeader>
         <CardTitle>Token Swap</CardTitle>
-        <CardDescription>Select your token to swap</CardDescription>
+        <CardDescription>Swap tokens at current market rates</CardDescription>
       </CardHeader>
       <CardContent>
-        <form id="form-rhf-demo" onSubmit={form.handleSubmit(onSubmit)}>
+        <form id="swap-form" onSubmit={form.handleSubmit(onSubmit)}>
           <FieldGroup>
             <Controller
-              name="title"
+              name="fromToken"
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="form-rhf-demo-title">
-                    Bug Title
-                  </FieldLabel>
+                  <FieldLabel htmlFor="from-token">From Token</FieldLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="from-token" aria-invalid={fieldState.invalid}>
+                      <SelectValue placeholder="Select token" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TOKENS.map((token) => (
+                        <SelectItem key={token} value={token} className="bg-gray-50 hover:bg-gray-100">
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={`https://raw.githubusercontent.com/Switcheo/token-icons/main/tokens/${token}.svg`}
+                              alt={token}
+                              className="size-5"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none"
+                              }}
+                            />
+                            <span>{token}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+
+            <Controller
+              name="fromAmount"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="from-amount">Amount</FieldLabel>
                   <Input
                     {...field}
-                    id="form-rhf-demo-title"
+                    id="from-amount"
+                    type="number"
+                    step="any"
                     aria-invalid={fieldState.invalid}
-                    placeholder="Login button not working on mobile"
+                    placeholder="0.00"
                     autoComplete="off"
                   />
                   {fieldState.invalid && (
@@ -90,6 +129,52 @@ export function SwapForm() {
                 </Field>
               )}
             />
+
+            <Controller
+              name="toToken"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="to-token">To Token</FieldLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="to-token" aria-invalid={fieldState.invalid}>
+                      <SelectValue placeholder="Select token" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TOKENS.map((token) => (
+                        <SelectItem key={token} value={token} className="bg-gray-50 hover:bg-gray-100">
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={`https://raw.githubusercontent.com/Switcheo/token-icons/main/tokens/${token}.svg`}
+                              alt={token}
+                              className="size-5"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none"
+                              }}
+                            />
+                            <span>{token}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+
+            <Field>
+              <FieldLabel htmlFor="to-amount">You will receive</FieldLabel>
+              <Input
+                id="to-amount"
+                type="number"
+                value={toAmount}
+                disabled
+                placeholder="0.00"
+              />
+            </Field>
           </FieldGroup>
         </form>
       </CardContent>
@@ -98,8 +183,8 @@ export function SwapForm() {
           <Button type="button" variant="outline" onClick={() => form.reset()}>
             Reset
           </Button>
-          <Button type="submit" form="form-rhf-demo">
-            Submit
+          <Button type="submit" form="swap-form">
+            Swap
           </Button>
         </Field>
       </CardFooter>
