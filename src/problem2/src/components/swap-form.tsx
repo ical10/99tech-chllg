@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { TOKENS } from "@/lib/constants"
-import { convertTokenAmount } from "@/lib/price-service"
+import { convertTokenAmount, usePrices } from "@/lib/price-service"
 
 const formSchema = z.object({
   fromToken: z.string().min(1, "Please select a token"),
@@ -48,6 +48,8 @@ export function SwapForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [toAmount, setToAmount] = useState("")
 
+  const { data: prices } = usePrices()
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -63,16 +65,13 @@ export function SwapForm() {
   const { isValid } = form.formState
 
   useEffect(() => {
-    const calculateConversion = async () => {
-      if (fromAmount && fromToken && toToken) {
-        const converted = await convertTokenAmount(fromToken, toToken, fromAmount)
-        setToAmount(converted)
-      } else {
-        setToAmount("")
-      }
+    if (fromAmount && fromToken && toToken) {
+      const converted = convertTokenAmount(prices, fromToken, toToken, fromAmount)
+      setToAmount(converted)
+    } else {
+      setToAmount("")
     }
-    calculateConversion()
-  }, [fromAmount, fromToken, toToken])
+  }, [fromAmount, fromToken, toToken, prices])
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
     setIsLoading(true)
