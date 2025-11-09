@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useMemo, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
+import { toast } from "sonner"
 import * as z from "zod"
 
 import { Button } from "@/components/ui/button"
@@ -43,7 +44,7 @@ const formSchema = z.object({
 })
 
 export function SwapForm() {
-  const [toAmount, setToAmount] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -55,13 +56,27 @@ export function SwapForm() {
   })
 
   const fromAmount = form.watch("fromAmount")
+  const { isValid } = form.formState
 
-  useEffect(() => {
-    setToAmount(fromAmount || "")
-  }, [fromAmount])
+  const toAmount = useMemo(() => fromAmount || "", [fromAmount])
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
-    console.log("Swap submitted:", { ...data, toAmount })
+  async function onSubmit(data: z.infer<typeof formSchema>) {
+    setIsLoading(true)
+
+    toast.info(`Processing swap: ${data.fromAmount} ${data.fromToken} → ${toAmount} ${data.toToken}`, {
+      duration: 2000,
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 2000))
+
+    toast.success(`Swap confirmed: ${data.fromAmount} ${data.fromToken} → ${toAmount} ${data.toToken}`, {
+      duration: 4000,
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 4000))
+
+    setIsLoading(false)
+    form.reset()
   }
 
   return (
@@ -180,11 +195,11 @@ export function SwapForm() {
       </CardContent>
       <CardFooter>
         <Field orientation="horizontal">
-          <Button type="button" variant="outline" onClick={() => form.reset()}>
+          <Button type="button" variant="outline" onClick={() => form.reset()} disabled={isLoading}>
             Reset
           </Button>
-          <Button type="submit" form="swap-form">
-            Swap
+          <Button type="submit" form="swap-form" disabled={!isValid || isLoading}>
+            {isLoading ? "Processing..." : "Swap"}
           </Button>
         </Field>
       </CardFooter>
