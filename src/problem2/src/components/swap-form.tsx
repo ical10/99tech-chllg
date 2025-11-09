@@ -124,7 +124,7 @@ export function SwapForm() {
                     autoComplete="off"
                   />
                   {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
+                    <FieldError errors={[fieldState.error]} className="text-red-600" />
                   )}
                 </Field>
               )}
