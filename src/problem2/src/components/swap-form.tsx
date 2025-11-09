@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { TOKENS } from "@/lib/constants"
+import { convertTokenAmount } from "@/lib/price-service"
 
 const formSchema = z.object({
   fromToken: z.string().min(1, "Please select a token"),
@@ -45,6 +46,7 @@ const formSchema = z.object({
 
 export function SwapForm() {
   const [isLoading, setIsLoading] = useState(false)
+  const [toAmount, setToAmount] = useState("")
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -56,9 +58,21 @@ export function SwapForm() {
   })
 
   const fromAmount = form.watch("fromAmount")
+  const fromToken = form.watch("fromToken")
+  const toToken = form.watch("toToken")
   const { isValid } = form.formState
 
-  const toAmount = useMemo(() => fromAmount || "", [fromAmount])
+  useEffect(() => {
+    const calculateConversion = async () => {
+      if (fromAmount && fromToken && toToken) {
+        const converted = await convertTokenAmount(fromToken, toToken, fromAmount)
+        setToAmount(converted)
+      } else {
+        setToAmount("")
+      }
+    }
+    calculateConversion()
+  }, [fromAmount, fromToken, toToken])
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
     setIsLoading(true)
